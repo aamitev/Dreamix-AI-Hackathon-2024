@@ -2,8 +2,9 @@ import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import OpenAI from 'openai';
 import { NgIf } from '@angular/common';
-import { environment } from '../environments/environment';
 import {FormsModule} from '@angular/forms';
+import { MicComponent } from '../mic/mic.component';
+import { environment } from '../environments/enviroment';
 
 interface DnDScenePrompt {
   prompt: string;
@@ -13,7 +14,7 @@ interface DnDScenePrompt {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NgIf, FormsModule],
+  imports: [RouterOutlet, NgIf, FormsModule, MicComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
