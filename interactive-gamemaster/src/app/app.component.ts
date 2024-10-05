@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import OpenAI from 'openai';
 import { NgIf } from '@angular/common';
 import { environment } from '../environments/environment';
+import {FormsModule} from '@angular/forms';
 
 interface DnDScenePrompt {
   prompt: string;
@@ -12,7 +13,7 @@ interface DnDScenePrompt {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NgIf],
+  imports: [RouterOutlet, NgIf, FormsModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss'
 })
@@ -21,9 +22,9 @@ export class AppComponent {
   story: string = '';
   isStoryFinished: boolean = false;
   prompt: string = '';
-  sceneImagePrompts: DnDScenePrompt[] = [];
-  private openai: OpenAI;
 
+  private openai: OpenAI;
+  image_url : string | undefined = "";
   constructor() {
     this.openai = new OpenAI({
       apiKey: environment.openaiApiKey,
@@ -87,19 +88,6 @@ export class AppComponent {
     this.story += '\n\nThe story ends here. Thanks for playing!';
   }
 
-  async generateDnDSceneImage() {
-    if (this.prompt) {
-      const imageUrl = await this.generateDnDSceneImage(this.prompt);
-
-      if (imageUrl) {
-        this.sceneImagePrompts.push({prompt: this.prompt, imageUrl});
-        this.prompt = ''; // Clear the prompt after generating the image
-      }
-    } else {
-      alert('Please enter a valid DnD scene prompt.');
-    }
-  }
-
   async generateDnDSceneImage(prompt: string): Promise<string> {
     try {
       const response = await this.openai.images.generate({
@@ -111,6 +99,8 @@ export class AppComponent {
       });
 
       if (response && response.data && response.data.length > 0) {
+       this.image_url = response.data[0].url
+        console.log(this.image_url);
         return response.data[0].url!; // Return the URL of the generated image
       } else {
         console.error('No image URL found in the response.');

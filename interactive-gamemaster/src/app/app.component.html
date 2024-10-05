@@ -5,13 +5,10 @@
     [(ngModel)]="prompt"
     placeholder="Describe your DnD scene, e.g., 'A dark forest with glowing mushrooms and a hidden cave'"
   />
-  <button (click)="generateDnDSceneImage()">Generate Image</button>
+  <button (click)="generateDnDSceneImage(prompt)">Generate Image</button>
 
   <h3>Generated DnD Scene Images:</h3>
-  <div *ngFor="let dndScene of sceneImagePrompts">
-    <p><strong>Prompt:</strong> {{ dndScene.prompt }}</p>
-    <img [src]="dndScene.imageUrl" alt="Generated DnD Scene Image"/>
-  </div>
+    <img [src]="this.image_url" alt="Generated DnD Scene Image"/>
 </div>
 
 
