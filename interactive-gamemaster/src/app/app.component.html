@@ -1,10 +1,12 @@
 <div class="story-container">
   <h1>Interactive Story</h1>
-  <p>{{ story }}</p>
+
+  <button (click)="startStory()" *ngIf="!story">Start Story</button>
+
+  <div *ngIf="!isStoryFinished">
+    <p>{{ story }}</p>
+    <button (click)="continueStory()" *ngIf="story">Continue Story</button>
+  </div>
+
+  <p *ngIf="isStoryFinished">The story has ended. Thank you for playing!</p>
 </div>
-
-<button (click)="continueStory()" *ngIf="!isStoryFinished">Continue Story</button>
-
-<button (click)="endStory()" *ngIf="!isStoryFinished">End Story</button>
-
-<p *ngIf="isStoryFinished">The story has ended. Thank you for playing!</p>
