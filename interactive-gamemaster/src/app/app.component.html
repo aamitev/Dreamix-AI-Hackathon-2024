@@ -1,3 +1,20 @@
+<div class="scene-image">
+  <h2>Generate a DnD Scene Image</h2>
+  <input
+    type="text"
+    [(ngModel)]="prompt"
+    placeholder="Describe your DnD scene, e.g., 'A dark forest with glowing mushrooms and a hidden cave'"
+  />
+  <button (click)="generateDnDSceneImage()">Generate Image</button>
+
+  <h3>Generated DnD Scene Images:</h3>
+  <div *ngFor="let dndScene of sceneImagePrompts">
+    <p><strong>Prompt:</strong> {{ dndScene.prompt }}</p>
+    <img [src]="dndScene.imageUrl" alt="Generated DnD Scene Image"/>
+  </div>
+</div>
+
+
 <div class="story-container">
   <h1>Interactive Story</h1>
 
