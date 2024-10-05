@@ -1,0 +1,50 @@
+# Angular build output
+/dist
+/out-tsc
+
+# Dependencies
+/node_modules
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Temporary files
+/tmp
+/temp
+*.tmp
+*.log
+*.lock
+*.DS_Store
+*.bak
+*.swp
+*~
+
+# Compiled source
+*.d.ts
+*.js
+*.js.map
+
+# System files
+Thumbs.db
+.DS_Store
+
+# Angular specific files
+.angular
+.angular-cli.json
+.angular/cache
+
+# Coverage reports
+/coverage
+
+# Environment files
+/src/environments/environment*.ts
+
+# Miscellaneous
+/.vscode/
+/.history/
