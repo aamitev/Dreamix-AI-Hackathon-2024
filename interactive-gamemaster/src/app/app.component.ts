@@ -1,23 +1,23 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import {DatePipe, NgForOf, NgIf, NgOptimizedImage} from '@angular/common';
+import { DatePipe, NgForOf, NgIf, NgOptimizedImage } from '@angular/common';
 import OpenAI from 'openai';
 import { environment } from '../environments/environment';
 import { Subscription } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { OpenAIWebSocketService } from './open-aiweb-socket-service.service';
-import WavEncoder from "wav-encoder";
-import {ChatService} from './chat.service';
+import WavEncoder from 'wav-encoder';
+import { ChatService } from './chat.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NgIf, FormsModule, FormsModule, NgOptimizedImage, DatePipe, NgForOf],
+  imports: [RouterOutlet, NgIf, FormsModule, NgOptimizedImage, DatePipe, NgForOf],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
 export class AppComponent implements OnInit, OnDestroy {
-  story: string = ''; // Holds the story text
+  story: string = ''; // Holds the accumulated story text
   isStoryFinished: boolean = false; // Flag for checking if the story has ended
   prompt: string = ''; // Holds the user prompt for DnD scene generation
   image_url: string | undefined = ''; // Holds the generated image URL
@@ -30,7 +30,6 @@ export class AppComponent implements OnInit, OnDestroy {
 
   messageContent = '';
   sender = 'User'; // You could customize this to have dynamic sender names
-
 
   constructor(private openAIWebSocketService: OpenAIWebSocketService, public chatService: ChatService) {
     this.openai = new OpenAI({
@@ -58,9 +57,9 @@ export class AppComponent implements OnInit, OnDestroy {
       }
 
       if (message.type === 'response.audio_transcript.done') {
-        this.chatService.addMessage("GM",message.transcript)
+        this.chatService.addMessage('GM', message.transcript);
 
-        // If the message is a story update
+        // Append the response to the accumulated story
         this.story += `\n${message.transcript}`;
         this.isStoryFinished = false; // Reset end-of-story flag
       }
@@ -94,16 +93,18 @@ export class AppComponent implements OnInit, OnDestroy {
     // Encode PCM16 to WAV using wav-encoder
     WavEncoder.encode({
       sampleRate: 24000, // 24kHz sample rate
-      channelData: [float32Data] // Mono channel as Float32Array
-    }).then((wavBuffer) => {
-      const audioBlob = new Blob([wavBuffer], { type: 'audio/wav' });
-      this.audioBlobUrl = URL.createObjectURL(audioBlob);
+      channelData: [float32Data], // Mono channel as Float32Array
+    })
+      .then((wavBuffer) => {
+        const audioBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+        this.audioBlobUrl = URL.createObjectURL(audioBlob);
 
-      // Mark the audio as ready
-      this.isAudioReady = true;
-    }).catch((error) => {
-      console.error('Error encoding WAV file:', error);
-    });
+        // Mark the audio as ready
+        this.isAudioReady = true;
+      })
+      .catch((error) => {
+        console.error('Error encoding WAV file:', error);
+      });
   }
 
   playAudio() {
@@ -118,13 +119,22 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Start the story by asking for initial context
+  sendMessage(): void {
+    if (this.messageContent.trim()) {
+      this.chatService.addMessage(this.sender, this.messageContent);
+      this.messageContent = ''; // Clear the input field
+    }
+  }
+
   async startStory() {
-    const initialStory = window.prompt('Enter the initial context for your story:');
+    const initialStory = this.chatService.getLatestUserMessage();
     if (!initialStory) {
       alert('You need to provide a starting point for the story.');
       return;
     }
+
+    // Append initial story to the story context
+    this.story = initialStory;
 
     // Send the initial story to the server
     this.openAIWebSocketService.send({
@@ -132,62 +142,30 @@ export class AppComponent implements OnInit, OnDestroy {
       response: {
         modalities: ['text', 'audio'],
         instructions:
-          "`You are a Dungeon Master in a tabletop RPG. You are guiding the player through a world of fantasy. Your responses should be detailed but concise offering descriptions of the world, challenges, or characters the player encounters. The player must have choices to make. Ask players for preferences (genre, setting, tone, rules); generate world (locations, NPCs, factions, story hook); recap past events; ask for player actions; resolve with dice or rules; manage NPCs and story based on player choices; use turn-based system for combat; balance difficulty and progression; end session with summary and hints." +
-          initialStory,
+          "`You are a Dungeon Master in a tabletop RPG. You are guiding the player through a world of fantasy. Your responses should be detailed but concise offering descriptions of the world, challenges, or characters the player encounters. The player must have choices to make. Ask players for preferences (genre, setting, tone, rules); generate world (locations, NPCs, factions, story hook); recap past events; ask for player actions; resolve with dice or rules; manage NPCs and story based on player choices; use turn-based system for combat; balance difficulty and progression; end session with summary and hints." + this.story,
       },
     });
   }
 
-  // Continue the story based on user input
   async continueStory() {
-    // const userAction = window.prompt(`${this.story}\n\nWhat would you do next? (Type 'end' to finish)`);
     const userAction = this.chatService.getLatestUserMessage();
 
-    // End the story if the user types 'end'
     if (userAction?.toLowerCase() === 'end') {
       this.endStory();
       return;
     }
 
-    // Send the user's action to the server
+    // Append user action to the accumulated story context
+    this.story += `\nUser: ${userAction}`;
+
     this.openAIWebSocketService.send({
       type: 'response.create',
       response: {
         modalities: ['text', 'audio'],
         instructions:
-          "`You are a Dungeon Master in a tabletop RPG. You are guiding the player through a world of fantasy. Your responses should be detailed but concise offering descriptions of the world, challenges, or characters the player encounters. The player must have choices to make. Ask players for preferences (genre, setting, tone, rules); generate world (locations, NPCs, factions, story hook); recap past events; ask for player actions; resolve with dice or rules; manage NPCs and story based on player choices; use turn-based system for combat; balance difficulty and progression; end session with summary and hints." +
-          userAction,
+          "`You are a Dungeon Master in a tabletop RPG. You are guiding the player through a world of fantasy. Your responses should be detailed but concise offering descriptions of the world, challenges, or characters the player encounters. The player must have choices to make. Ask players for preferences (genre, setting, tone, rules); generate world (locations, NPCs, factions, story hook); recap past events; ask for player actions; resolve with dice or rules; manage NPCs and story based on player choices; use turn-based system for combat; balance difficulty and progression; end session with summary and hints." + this.story,
       },
     });
-
-
-  }
-
-  // Generate a DnD scene image based on a prompt (Directly handled by OpenAI API)
-  async generateDnDSceneImage(prompt: string) {
-    if (!prompt) {
-      alert('Please provide a valid DnD scene description.');
-      return;
-    }
-
-    try {
-      const response = await this.openai.images.generate({
-        prompt: prompt,
-        model: 'dall-e-3',
-        n: 1,
-        size: '1024x1024',
-        response_format: 'url',
-      });
-
-      if (response && response.data && response.data.length > 0) {
-        this.image_url = response.data[0].url;
-      } else {
-        console.error('No image URL found in the response.');
-        this.image_url = '';
-      }
-    } catch (error) {
-      console.error('Error generating image:', error);
-    }
   }
 
   endStory() {
@@ -200,12 +178,5 @@ export class AppComponent implements OnInit, OnDestroy {
       this.messagesSubscription.unsubscribe();
     }
     this.openAIWebSocketService.disconnect();
-  }
-
-  sendMessage(): void {
-    if (this.messageContent.trim()) {
-      this.chatService.addMessage(this.sender, this.messageContent);
-      this.messageContent = ''; // Clear the input field
-    }
   }
 }

@@ -2,21 +2,25 @@
   <div class="chat-container">
     <div class="chat-window">
       <div class="message" *ngFor="let message of chatService.messages">
-        <strong>{{message.sender}}</strong>: {{message.content}}
-        <span class="timestamp">{{ message.timestamp | date:'shortTime' }}</span>
+        <strong>{{ message.sender }}</strong>: {{ message.content }}
+        <span class="timestamp">{{ message.timestamp | date: 'shortTime' }}</span>
       </div>
     </div>
     <div class="message-input">
-      <input [(ngModel)]="messageContent" placeholder="Type a message"/>
+      <input [(ngModel)]="messageContent" placeholder="Type a message" />
       <button (click)="sendMessage()">Send</button>
     </div>
-
 
     <button (click)="startStory()" *ngIf="!story">Start Story</button>
     <div *ngIf="!isStoryFinished">
       <p>{{ story }}</p>
       <button (click)="continueStory()" *ngIf="story">Continue Story</button>
     </div>
+  </div>
+
+  <!-- Add Play Audio Button -->
+  <div *ngIf="isAudioReady">
+    <button (click)="playAudio()">Play Audio</button>
   </div>
 
   <div class="image-container">
@@ -26,45 +30,13 @@
     </div>
     <div class="scene-image">
       <ng-container>
-        <!--      <input-->
-        <!--        type="text"-->
-        <!--        [(ngModel)]="prompt"-->
-        <!--        placeholder="Describe your DnD scene, e.g., 'A dark forest with glowing mushrooms and a hidden cave'"-->
-        <!--      />-->
-        <!--      <button (click)="generateDnDSceneImage(prompt)">Generate Image</button>-->
-
         <ng-container *ngIf="image_url">
-          <img [src]="image_url" alt="Generated DnD Scene Image"/>
+          <img [src]="image_url" alt="Generated DnD Scene Image" />
         </ng-container>
         <ng-container *ngIf="!image_url">
-          <img [src]="'assets/dnd-background.png'"/>
+          <img [src]="'assets/dnd-background.png'" />
         </ng-container>
       </ng-container>
     </div>
   </div>
 </div>
-
-<!--<div class="scene-image">-->
-<!--  <h2>Generate a DnD Scene Image</h2>-->
-<!--  <input-->
-<!--    type="text"-->
-<!--    [(ngModel)]="prompt"-->
-<!--    placeholder="Describe your DnD scene, e.g., 'A dark forest with glowing mushrooms and a hidden cave'"-->
-<!--  />-->
-<!--  <button (click)="generateDnDSceneImage(prompt)">Generate Image</button>-->
-
-<!--  <h3>Generated DnD Scene Images:</h3>-->
-<!--  <img [src]="image_url" *ngIf="image_url" alt="Generated DnD Scene Image" />-->
-<!--</div>-->
-
-<!--<div class="story-container">-->
-<!--  <h1>Interactive Story</h1>-->
-
-
-<!--  <div *ngIf="!isStoryFinished">-->
-<!--    <p>{{ story }}</p>-->
-<!--    <button (click)="continueStory()" *ngIf="story">Continue Story</button>-->
-<!--  </div>-->
-
-<!--  <p *ngIf="isStoryFinished">The story has ended. Thank you for playing!</p>-->
-<!--</div>-->
