@@ -1,25 +1,21 @@
-import {Injectable} from '@angular/core';
-
-export interface Message {
-  sender: string;
-  content: string;
-  timestamp: Date;
-}
+import { Injectable } from '@angular/core';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ChatService {
+  messages: { sender: string; content: string; timestamp: Date }[] = [];
 
-  messages: Message[] = [];
-
-  constructor() {}
-
-  addMessage(sender: string, content: string): void {
-    this.messages.push({ sender, content, timestamp: new Date() });
+  addMessage(sender: string, content: string) {
+    this.messages.push({
+      sender,
+      content,
+      timestamp: new Date(),
+    });
   }
 
-  getLatestUserMessage(): string | undefined {
-    return this.messages.reverse().find(elm => elm.sender === 'User')?.content;
+  getLatestUserMessage(): string | null {
+    const userMessages = this.messages.filter((msg) => msg.sender === 'User');
+    return userMessages.length ? userMessages[userMessages.length - 1].content : null;
   }
 }
