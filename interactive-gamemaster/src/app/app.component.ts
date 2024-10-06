@@ -1,32 +1,33 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import {NgIf, NgOptimizedImage} from '@angular/common'; // WebSocket service for story handling
-import OpenAI from 'openai'; // Direct OpenAI client for image handling
-import { environment } from '../environments/environment'; // Your environment with API keys
+import { NgIf, NgOptimizedImage } from '@angular/common';
+import OpenAI from 'openai';
+import { environment } from '../environments/environment';
 import { Subscription } from 'rxjs';
-import {FormsModule} from '@angular/forms';
-import {OpenAIWebSocketService} from './open-aiweb-socket-service.service';
-import {MicComponent} from '../mic/mic.component';
-import {ChatService} from './chat.service';
-import {ChatComponent} from './chat/chat.component';
+import { FormsModule } from '@angular/forms';
+import { OpenAIWebSocketService } from './open-aiweb-socket-service.service';
+import WavEncoder from "wav-encoder";
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NgIf, FormsModule, FormsModule, NgOptimizedImage,  MicComponent, ChatComponent, ChatComponent],
+  imports: [RouterOutlet, NgIf, FormsModule, FormsModule, NgOptimizedImage],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
 export class AppComponent implements OnInit, OnDestroy {
-  story: string = '';  // Holds the story text
-  isStoryFinished: boolean = false;  // Flag for checking if the story has ended
-  prompt: string = '';  // Holds the user prompt for DnD scene generation
-  image_url: string | undefined = '';  // Holds the generated image URL
-  private openai: OpenAI;  // OpenAI client for image generation
+  story: string = ''; // Holds the story text
+  isStoryFinished: boolean = false; // Flag for checking if the story has ended
+  prompt: string = ''; // Holds the user prompt for DnD scene generation
+  image_url: string | undefined = ''; // Holds the generated image URL
+  private openai: OpenAI; // OpenAI client for image generation
+  private messagesSubscription!: Subscription; // Subscription to handle WebSocket messages
 
-  private messagesSubscription!: Subscription;  // Subscription to handle WebSocket messages
+  private audioChunks: string[] = []; // Collect audio deltas
+  private audioBlobUrl: string | null = null; // Store the audio blob URL
+  isAudioReady: boolean = false; // Flag to check if audio is ready to play
 
-  constructor(private openAIWebSocketService: OpenAIWebSocketService, private chatService: ChatService) {
+  constructor(private openAIWebSocketService: OpenAIWebSocketService) {
     this.openai = new OpenAI({
       apiKey: environment.openaiApiKey,
       dangerouslyAllowBrowser: true,
@@ -41,19 +42,75 @@ export class AppComponent implements OnInit, OnDestroy {
     this.messagesSubscription = this.openAIWebSocketService.getMessages().subscribe((message) => {
       console.log(message);
 
-      if (message.type === 'response.done') {
-        if (message.response.output[0].content[0].text) {
+      if (message.type === 'response.audio.delta') {
+        // Handle audio delta messages
+        this.handleAudioDelta(message.delta);
+      }
 
-          // console.log(message.text);
-          // If the message is a story update
-          this.story += `\n${message.response.output[0].content[0].text}`;
-          this.isStoryFinished = false; // Reset end-of-story flag
-        }
+      if (message.type === 'response.audio.done') {
+        // Once all audio deltas are received, set the audio ready flag to true
+        this.prepareAudio();
+      }
+
+      if (message.type === 'response.audio_transcript.done') {
+        // If the message is a story update
+        this.story += `\n${message.transcript}`;
+        this.isStoryFinished = false; // Reset end-of-story flag
       }
     });
   }
 
-  // Start the story by asking for initial context
+  // Collect audio delta chunks
+  handleAudioDelta(delta: string) {
+    this.audioChunks.push(delta); // Append delta to audio chunks
+  }
+
+  prepareAudio() {
+    if (this.audioChunks.length === 0) return;
+
+    // Concatenate all audio deltas
+    const base64Audio = this.audioChunks.join('');
+
+    // Decode base64 into binary data
+    const binaryAudio = atob(base64Audio);
+    const pcm16Data = new Int16Array(binaryAudio.length / 2);
+    for (let i = 0; i < binaryAudio.length; i += 2) {
+      pcm16Data[i / 2] = (binaryAudio.charCodeAt(i + 1) << 8) | binaryAudio.charCodeAt(i);
+    }
+
+    // Convert PCM16 (Int16Array) to Float32Array
+    const float32Data = new Float32Array(pcm16Data.length);
+    for (let i = 0; i < pcm16Data.length; i++) {
+      float32Data[i] = pcm16Data[i] / 32768; // Normalize to range -1 to 1
+    }
+
+    // Encode PCM16 to WAV using wav-encoder
+    WavEncoder.encode({
+      sampleRate: 24000, // 24kHz sample rate
+      channelData: [float32Data] // Mono channel as Float32Array
+    }).then((wavBuffer) => {
+      const audioBlob = new Blob([wavBuffer], { type: 'audio/wav' });
+      this.audioBlobUrl = URL.createObjectURL(audioBlob);
+
+      // Mark the audio as ready
+      this.isAudioReady = true;
+    }).catch((error) => {
+      console.error('Error encoding WAV file:', error);
+    });
+  }
+
+  playAudio() {
+    if (!this.isAudioReady || !this.audioBlobUrl) {
+      alert('Audio is not ready yet.');
+      return;
+    }
+
+    const audio = new Audio(this.audioBlobUrl);
+    audio.play().catch((error) => {
+      console.error('Error playing audio:', error);
+    });
+  }
+
   async startStory() {
     const initialStory = window.prompt('Enter the initial context for your story:');
     if (!initialStory) {
@@ -61,39 +118,36 @@ export class AppComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Send the initial story to the server
     this.openAIWebSocketService.send({
       type: 'response.create',
       response: {
-        modalities: ['text'],
-        instructions: "`You are a Dungeon Master in a tabletop RPG. You are guiding the player through a world of fantasy. Your responses should be detailed but concise offering descriptions of the world, challenges, or characters the player encounters. The player must have choices to make. Ask players for preferences (genre, setting, tone, rules); generate world (locations, NPCs, factions, story hook); recap past events; ask for player actions; resolve with dice or rules; manage NPCs and story based on player choices; use turn-based system for combat; balance difficulty and progression; end session with summary and hints." + initialStory,
+        modalities: ['text', 'audio'],
+        instructions:
+          "`You are a Dungeon Master in a tabletop RPG. You are guiding the player through a world of fantasy. Your responses should be detailed but concise offering descriptions of the world, challenges, or characters the player encounters. The player must have choices to make. Ask players for preferences (genre, setting, tone, rules); generate world (locations, NPCs, factions, story hook); recap past events; ask for player actions; resolve with dice or rules; manage NPCs and story based on player choices; use turn-based system for combat; balance difficulty and progression; end session with summary and hints." +
+          initialStory,
       },
     });
   }
 
-  // Continue the story based on user input
   async continueStory() {
     const userAction = window.prompt(`${this.story}\n\nWhat would you do next? (Type 'end' to finish)`);
 
-    // End the story if the user types 'end'
     if (userAction?.toLowerCase() === 'end') {
       this.endStory();
       return;
     }
 
-    // Send the user's action to the server
     this.openAIWebSocketService.send({
       type: 'response.create',
       response: {
-        modalities: ['text'],
-        instructions: "`You are a Dungeon Master in a tabletop RPG. You are guiding the player through a world of fantasy. Your responses should be detailed but concise offering descriptions of the world, challenges, or characters the player encounters. The player must have choices to make. Ask players for preferences (genre, setting, tone, rules); generate world (locations, NPCs, factions, story hook); recap past events; ask for player actions; resolve with dice or rules; manage NPCs and story based on player choices; use turn-based system for combat; balance difficulty and progression; end session with summary and hints." + userAction,
+        modalities: ['text', 'audio'],
+        instructions:
+          "`You are a Dungeon Master in a tabletop RPG. You are guiding the player through a world of fantasy. Your responses should be detailed but concise offering descriptions of the world, challenges, or characters the player encounters. The player must have choices to make. Ask players for preferences (genre, setting, tone, rules); generate world (locations, NPCs, factions, story hook); recap past events; ask for player actions; resolve with dice or rules; manage NPCs and story based on player choices; use turn-based system for combat; balance difficulty and progression; end session with summary and hints." +
+          userAction,
       },
     });
-
-
   }
 
-  // Generate a DnD scene image based on a prompt (Directly handled by OpenAI API)
   async generateDnDSceneImage(prompt: string) {
     if (!prompt) {
       alert('Please provide a valid DnD scene description.');
@@ -103,31 +157,28 @@ export class AppComponent implements OnInit, OnDestroy {
     try {
       const response = await this.openai.images.generate({
         prompt: prompt,
-        model: 'dall-e-3',  // Using the DALL-E 3 model
+        model: 'dall-e-3',
         n: 1,
         size: '1024x1024',
         response_format: 'url',
       });
 
       if (response && response.data && response.data.length > 0) {
-        this.image_url = response.data[0].url;  // Set the generated image URL
-        console.log(this.image_url);
+        this.image_url = response.data[0].url;
       } else {
         console.error('No image URL found in the response.');
-        this.image_url = '';  // Clear the image if no URL is returned
+        this.image_url = '';
       }
     } catch (error) {
       console.error('Error generating image:', error);
     }
   }
 
-  // End the story
   endStory() {
     this.isStoryFinished = true;
     this.story += '\n\nThe story ends here. Thanks for playing!';
   }
 
-  // Clean up the WebSocket connection when the component is destroyed
   ngOnDestroy(): void {
     if (this.messagesSubscription) {
       this.messagesSubscription.unsubscribe();
