@@ -8,9 +8,8 @@
   <button (click)="generateDnDSceneImage(prompt)">Generate Image</button>
 
   <h3>Generated DnD Scene Images:</h3>
-    <img [src]="this.image_url" alt="Generated DnD Scene Image"/>
+  <img [src]="image_url" *ngIf="image_url" alt="Generated DnD Scene Image" />
 </div>
-
 
 <div class="story-container">
   <h1>Interactive Story</h1>
@@ -24,5 +23,3 @@
 
   <p *ngIf="isStoryFinished">The story has ended. Thank you for playing!</p>
 </div>
-
-<app-mic></app-mic>
