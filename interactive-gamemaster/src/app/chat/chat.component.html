@@ -1,7 +1,0 @@
-<div class="chat-window">
-  <div class="message" *ngFor="let message of messages">
-    <strong>{{message.sender}}</strong>: {{message.content}}
-    <span class="timestamp">{{ message.timestamp | date:'shortTime' }}</span>
-  </div>
-</div>
-<app-message-input></app-message-input>

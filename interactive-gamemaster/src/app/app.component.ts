@@ -1,17 +1,18 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { NgIf, NgOptimizedImage } from '@angular/common';
+import {DatePipe, NgForOf, NgIf, NgOptimizedImage} from '@angular/common';
 import OpenAI from 'openai';
 import { environment } from '../environments/environment';
 import { Subscription } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { OpenAIWebSocketService } from './open-aiweb-socket-service.service';
 import WavEncoder from "wav-encoder";
+import {ChatService} from './chat.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NgIf, FormsModule, FormsModule, NgOptimizedImage],
+  imports: [RouterOutlet, NgIf, FormsModule, FormsModule, NgOptimizedImage, DatePipe, NgForOf],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
@@ -27,7 +28,11 @@ export class AppComponent implements OnInit, OnDestroy {
   private audioBlobUrl: string | null = null; // Store the audio blob URL
   isAudioReady: boolean = false; // Flag to check if audio is ready to play
 
-  constructor(private openAIWebSocketService: OpenAIWebSocketService) {
+  messageContent = '';
+  sender = 'User'; // You could customize this to have dynamic sender names
+
+
+  constructor(private openAIWebSocketService: OpenAIWebSocketService, public chatService: ChatService) {
     this.openai = new OpenAI({
       apiKey: environment.openaiApiKey,
       dangerouslyAllowBrowser: true,
@@ -53,6 +58,8 @@ export class AppComponent implements OnInit, OnDestroy {
       }
 
       if (message.type === 'response.audio_transcript.done') {
+        this.chatService.addMessage("GM",message.transcript)
+
         // If the message is a story update
         this.story += `\n${message.transcript}`;
         this.isStoryFinished = false; // Reset end-of-story flag
@@ -111,6 +118,7 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
+  // Start the story by asking for initial context
   async startStory() {
     const initialStory = window.prompt('Enter the initial context for your story:');
     if (!initialStory) {
@@ -118,6 +126,7 @@ export class AppComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // Send the initial story to the server
     this.openAIWebSocketService.send({
       type: 'response.create',
       response: {
@@ -129,14 +138,18 @@ export class AppComponent implements OnInit, OnDestroy {
     });
   }
 
+  // Continue the story based on user input
   async continueStory() {
-    const userAction = window.prompt(`${this.story}\n\nWhat would you do next? (Type 'end' to finish)`);
+    // const userAction = window.prompt(`${this.story}\n\nWhat would you do next? (Type 'end' to finish)`);
+    const userAction = this.chatService.getLatestUserMessage();
 
+    // End the story if the user types 'end'
     if (userAction?.toLowerCase() === 'end') {
       this.endStory();
       return;
     }
 
+    // Send the user's action to the server
     this.openAIWebSocketService.send({
       type: 'response.create',
       response: {
@@ -146,8 +159,11 @@ export class AppComponent implements OnInit, OnDestroy {
           userAction,
       },
     });
+
+
   }
 
+  // Generate a DnD scene image based on a prompt (Directly handled by OpenAI API)
   async generateDnDSceneImage(prompt: string) {
     if (!prompt) {
       alert('Please provide a valid DnD scene description.');
@@ -184,5 +200,12 @@ export class AppComponent implements OnInit, OnDestroy {
       this.messagesSubscription.unsubscribe();
     }
     this.openAIWebSocketService.disconnect();
+  }
+
+  sendMessage(): void {
+    if (this.messageContent.trim()) {
+      this.chatService.addMessage(this.sender, this.messageContent);
+      this.messageContent = ''; // Clear the input field
+    }
   }
 }

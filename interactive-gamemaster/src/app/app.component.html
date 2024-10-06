@@ -1,12 +1,22 @@
 <div class="body">
   <div class="chat-container">
-    <button (click)="startStory()" *ngIf="!story">Start Story</button>
+    <div class="chat-window">
+      <div class="message" *ngFor="let message of chatService.messages">
+        <strong>{{message.sender}}</strong>: {{message.content}}
+        <span class="timestamp">{{ message.timestamp | date:'shortTime' }}</span>
+      </div>
+    </div>
+    <div class="message-input">
+      <input [(ngModel)]="messageContent" placeholder="Type a message"/>
+      <button (click)="sendMessage()">Send</button>
+    </div>
 
+
+    <button (click)="startStory()" *ngIf="!story">Start Story</button>
     <div *ngIf="!isStoryFinished">
       <p>{{ story }}</p>
       <button (click)="continueStory()" *ngIf="story">Continue Story</button>
     </div>
-    <app-chat></app-chat>
   </div>
 
   <div class="image-container">

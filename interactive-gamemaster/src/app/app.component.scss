@@ -83,6 +83,35 @@ $black:  #000000;
   background: $dark-grey;
 }
 
+.chat-window {
+  width: 100%;
+}
+
+.message-input {
+  display: flex;
+  height: 3rem;
+  //justify-content: space-between;
+  input {
+    width: 100%;
+    display: block;
+    //max-width: 100%;
+    //padding-top: $width/15;
+    border-radius: 0; // For iOS
+    border: 0 transparent;
+    color: white;
+    background: $dark-grey;
+  }
+  input:focus {outline:none!important;}
+
+  button {
+    width: 30%;
+    height: 3rem;
+  }
+
+}
+
+
+
 //
 //.story-container {
 //  border: 1px solid #ddd;

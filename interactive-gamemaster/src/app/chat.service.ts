@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import {Injectable} from '@angular/core';
 
 export interface Message {
   sender: string;
@@ -17,5 +17,9 @@ export class ChatService {
 
   addMessage(sender: string, content: string): void {
     this.messages.push({ sender, content, timestamp: new Date() });
+  }
+
+  getLatestUserMessage(): string | undefined {
+    return this.messages.reverse().find(elm => elm.sender === 'User')?.content;
   }
 }
