@@ -21,6 +21,7 @@ export class AppComponent implements OnInit, OnDestroy {
   isStoryFinished: boolean = false; // Flag for checking if the story has ended
   prompt: string = ''; // Holds the user prompt for DnD scene generation
   image_url: string | undefined = ''; // Holds the generated image URL
+  storyStarted: boolean = false;
   private openai: OpenAI; // OpenAI client for image generation
   private messagesSubscription!: Subscription; // Subscription to handle WebSocket messages
 
@@ -62,7 +63,9 @@ export class AppComponent implements OnInit, OnDestroy {
         this.clearAudioChunks();
 
         this.chatService.addMessage('GM', message.transcript);
+          this.generateDnDSceneImage(message.transcript)
 
+        this.playAudio()
         // Append the response to the accumulated story
         this.story += `\n${message.transcript}`;
         this.isStoryFinished = false; // Reset end-of-story flag
@@ -136,6 +139,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   async startStory() {
+    this.sendMessage()
     const initialStory = this.chatService.getLatestUserMessage();
     if (!initialStory) {
       alert('You need to provide a starting point for the story.');
@@ -157,6 +161,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   async continueStory() {
+    this.sendMessage()
     const userAction = this.chatService.getLatestUserMessage();
 
     if (userAction?.toLowerCase() === 'end') {
@@ -187,5 +192,33 @@ export class AppComponent implements OnInit, OnDestroy {
       this.messagesSubscription.unsubscribe();
     }
     this.openAIWebSocketService.disconnect();
+  }
+
+  async generateDnDSceneImage(prompt: string) {
+    if (!prompt) {
+      alert('Please provide a valid DnD scene description.');
+      return;
+    }
+    console.log("send prompts:" +  prompt)
+
+    try {
+      const response = await this.openai.images.generate({
+        prompt: prompt,
+        model: 'dall-e-3',  // Using the DALL-E 3 model
+        n: 1,
+        size: '1024x1024',
+        response_format: 'url',
+      });
+
+      if (response && response.data && response.data.length > 0) {
+        this.image_url = response.data[0].url;  // Set the generated image URL
+        console.log(this.image_url);
+      } else {
+        console.error('No image URL found in the response.');
+        this.image_url = '';  // Clear the image if no URL is returned
+      }
+    } catch (error) {
+      console.error('Error generating image:', error);
+    }
   }
 }

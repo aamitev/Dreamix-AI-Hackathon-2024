@@ -8,20 +8,24 @@
     </div>
     <div class="message-input">
       <input [(ngModel)]="messageContent" placeholder="Type a message" />
-      <button (click)="sendMessage()">Send</button>
+      <button *ngIf="story"  (click)="continueStory()">Send</button>
     </div>
 
     <button (click)="startStory()" *ngIf="!story">Start Story</button>
-    <div *ngIf="!isStoryFinished">
+<!--    <div *ngIf="!isStoryFinished">-->
+<!--&lt;!&ndash;      <p>{{ story }}</p>&ndash;&gt;-->
+<!--      <button (click)="continueStory()" *ngIf="story">Continue Story</button>-->
+<!--    </div>-->
+<!--    <div *ngIf="!isStoryFinished">-->
 <!--      <p>{{ story }}</p>-->
-      <button (click)="continueStory()" *ngIf="story">Continue Story</button>
-    </div>
+<!--      <button (click)="continueStory()" *ngIf="story">Continue Story</button>-->
+<!--    </div>-->
   </div>
 
   <!-- Add Play Audio Button -->
-  <div *ngIf="isAudioReady">
-    <button (click)="playAudio()">Play Audio</button>
-  </div>
+<!--  <div *ngIf="isAudioReady">-->
+<!--    <button (click)="playAudio()">Play Audio</button>-->
+<!--  </div>-->
 
   <div class="image-container">
     <div class="image-changer">
