@@ -6,11 +6,14 @@ import { environment } from '../environments/environment'; // Your environment w
 import { Subscription } from 'rxjs';
 import {FormsModule} from '@angular/forms';
 import {OpenAIWebSocketService} from './open-aiweb-socket-service.service';
+import {MicComponent} from '../mic/mic.component';
+import {ChatService} from './chat.service';
+import {ChatComponent} from './chat/chat.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, NgIf, FormsModule, FormsModule, NgOptimizedImage],
+  imports: [RouterOutlet, NgIf, FormsModule, FormsModule, NgOptimizedImage,  MicComponent, ChatComponent, ChatComponent],
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
@@ -23,7 +26,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private messagesSubscription!: Subscription;  // Subscription to handle WebSocket messages
 
-  constructor(private openAIWebSocketService: OpenAIWebSocketService) {
+  constructor(private openAIWebSocketService: OpenAIWebSocketService, private chatService: ChatService) {
     this.openai = new OpenAI({
       apiKey: environment.openaiApiKey,
       dangerouslyAllowBrowser: true,
@@ -108,6 +111,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
       if (response && response.data && response.data.length > 0) {
         this.image_url = response.data[0].url;  // Set the generated image URL
+        console.log(this.image_url);
       } else {
         console.error('No image URL found in the response.');
         this.image_url = '';  // Clear the image if no URL is returned

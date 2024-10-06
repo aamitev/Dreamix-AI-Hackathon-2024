@@ -1,1 +1,34 @@
 /* You can add global styles to this file, and also import other style files */
+$white: #dbd8e3;
+$grey:  #5c5470;
+$dark-grey: #352f44;
+$black:  black;
+
+.white {
+  background: $white;
+}
+
+.grey {
+  background: $grey;
+}
+
+.dark-grey {
+  background: $dark-grey;
+}
+
+.black {
+  background: $black;
+}
+
+html {
+  margin: 0px;
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  background: black;
+  margin: 0px;
+  min-height: 100%;
+  width: 100%;
+}
