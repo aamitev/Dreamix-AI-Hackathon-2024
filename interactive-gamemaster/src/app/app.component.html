@@ -1,42 +1,52 @@
-<div class="body">
-  <div class="chat-container">
-    <div class="chat-window">
-      <div class="message" *ngFor="let message of chatService.messages">
-        <strong>{{ message.sender }}</strong>: {{ message.content }}
-        <span class="timestamp">{{ message.timestamp | date: 'shortTime' }}</span>
-      </div>
-    </div>
-    <div class="message-input">
-      <input [(ngModel)]="messageContent" placeholder="Type a message" />
-      <button (click)="sendMessage()">Send</button>
-    </div>
+<link href="https://fonts.googleapis.com/css2?family=Almendra:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
-    <button (click)="startStory()" *ngIf="!story">Start Story</button>
-    <div *ngIf="!isStoryFinished">
-      <p>{{ story }}</p>
-      <button (click)="continueStory()" *ngIf="story">Continue Story</button>
+<!--<app-mic></app-mic>-->
+
+<h1>AI Interactive Story Dreamix Team</h1>
+
+<div class="background" [class.black-bg]="isImageVisible || story"></div>
+<div *ngIf="isAudioReady">
+  <button (click)="playAudio()">Play Audio</button>
+</div>
+<div class="chat-container">
+  <div class="chat-window">
+    <div class="message" *ngFor="let message of chatService.messages">
+      <strong>{{ message.sender }}</strong>: {{ message.content }}
+      <span class="timestamp">{{ message.timestamp | date: 'shortTime' }}</span>
     </div>
   </div>
-
-  <!-- Add Play Audio Button -->
-  <div *ngIf="isAudioReady">
-    <button (click)="playAudio()">Play Audio</button>
+  <div class="message-input">
+    <input [(ngModel)]="messageContent" placeholder="Type a message" />
+    <button (click)="sendMessage()">Send</button>
   </div>
 
-  <div class="image-container">
-    <div class="image-changer">
-      <div class="arrow-left"></div>
-      <div class="arrow-right"></div>
-    </div>
-    <div class="scene-image">
-      <ng-container>
-        <ng-container *ngIf="image_url">
-          <img [src]="image_url" alt="Generated DnD Scene Image" />
-        </ng-container>
-        <ng-container *ngIf="!image_url">
-          <img [src]="'assets/dnd-background.png'" />
-        </ng-container>
-      </ng-container>
-    </div>
+  <button (click)="startStory()" *ngIf="!story">Start Story</button>
+  <div *ngIf="!isStoryFinished">
+    <p>{{ story }}</p>
+    <button (click)="continueStory()" *ngIf="story">Continue Story</button>
+  </div>
+</div>
+<button class="button-story" (click)="startStory()" *ngIf="!story">Start Story</button>
+<button *ngIf="story && (!isLoading && !isStoryFinished)" class="button-story continue" (click)="continueStory()">Continue Story</button>
+
+<div *ngIf="story" class="story-container" #storyContainer>
+
+  <div *ngIf="!isLoading && !isStoryFinished">
+    <p>{{ story }}</p>
+  </div>
+
+  <p *ngIf="isStoryFinished">The story has ended. Thank you for playing!</p>
+</div>
+
+<div class="scene-image">
+  <button class="generate-image-button" (click)="generateImage()">
+    <i class="fas fa-image"></i>
+  </button>
+
+  <div class="loader" *ngIf="isLoading"></div>
+
+  <div class="image-container" *ngIf="isImageVisible">
+    <img [src]="image_url" alt="Generated DnD Scene Image"/>
   </div>
 </div>

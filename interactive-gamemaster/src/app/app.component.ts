@@ -1,4 +1,5 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { AfterViewChecked, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+
 import { RouterOutlet } from '@angular/router';
 import { DatePipe, NgForOf, NgIf, NgOptimizedImage } from '@angular/common';
 import OpenAI from 'openai';
@@ -16,7 +17,8 @@ import { ChatService } from './chat.service';
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss'],
 })
-export class AppComponent implements OnInit, OnDestroy {
+export class AppComponent implements OnInit, OnDestroy, AfterViewChecked {
+  @ViewChild('storyContainer') private storyContainer?: ElementRef;
   story: string = ''; // Holds the accumulated story text
   isStoryFinished: boolean = false; // Flag for checking if the story has ended
   prompt: string = ''; // Holds the user prompt for DnD scene generation
@@ -27,6 +29,8 @@ export class AppComponent implements OnInit, OnDestroy {
   private audioChunks: string[] = []; // Collect audio deltas
   private audioBlobUrl: string | null = null; // Store the audio blob URL
   isAudioReady: boolean = false; // Flag to check if audio is ready to play
+  isImageVisible: boolean = false;
+  isLoading: boolean = false;
 
   messageContent = '';
   sender = 'User'; // You could customize this to have dynamic sender names
@@ -64,6 +68,20 @@ export class AppComponent implements OnInit, OnDestroy {
         this.isStoryFinished = false; // Reset end-of-story flag
       }
     });
+  }
+
+  ngAfterViewChecked() {
+    this.scrollToBottom();
+  }
+
+  private scrollToBottom(): void {
+    try {
+      if (this.storyContainer) {
+        this.storyContainer.nativeElement.scrollTop = this.storyContainer.nativeElement.scrollHeight;
+      }
+    } catch (err) {
+      console.error('Error scrolling to bottom:', err);
+    }
   }
 
   // Collect audio delta chunks
@@ -135,6 +153,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
     // Append initial story to the story context
     this.story = initialStory;
+    this.isImageVisible = false;
+    this.isLoading = true; // Start loading
 
     // Send the initial story to the server
     this.openAIWebSocketService.send({
@@ -166,6 +186,51 @@ export class AppComponent implements OnInit, OnDestroy {
           "`You are a Dungeon Master in a tabletop RPG. You are guiding the player through a world of fantasy. Your responses should be detailed but concise offering descriptions of the world, challenges, or characters the player encounters. The player must have choices to make. Ask players for preferences (genre, setting, tone, rules); generate world (locations, NPCs, factions, story hook); recap past events; ask for player actions; resolve with dice or rules; manage NPCs and story based on player choices; use turn-based system for combat; balance difficulty and progression; end session with summary and hints." + this.story,
       },
     });
+  }
+
+  generateImage() {
+    const promptText = prompt('Enter your prompt for image generation:');
+
+    if (promptText) {
+      this.generateDnDSceneImage(promptText);
+      alert(`Image generation prompt: ${promptText}`);
+      // Add your image generation logic here
+    } else {
+      alert('No prompt entered. Please try again.');
+    }
+  }
+
+  async generateDnDSceneImage(prompt: string): Promise<string> {
+    this.isLoading = true; // Start loading
+    this.isImageVisible = false; // Hide image while loading
+
+    try {
+      const response = await this.openai.images.generate({
+        prompt: prompt,
+        model: 'dall-e-3',
+        n: 1,
+        size: '1024x1024',
+        response_format: 'url'
+      });
+
+      if (response && response.data && response.data.length > 0) {
+        this.image_url = response.data[0].url;
+        this.isLoading = false;
+        this.isImageVisible = true; // Show image when generated
+        console.log(this.image_url);
+        return response.data[0].url!;
+      } else {
+        this.isLoading = false;
+        console.error('No image URL found in the response.');
+        return '';
+      }
+    } catch (error) {
+      this.isLoading = false;
+      console.error('Error generating image:', error);
+      return '';
+    } finally {
+      this.isLoading = false; // Stop loading
+    }
   }
 
   endStory() {

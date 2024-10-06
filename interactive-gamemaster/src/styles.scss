@@ -1,34 +1,13 @@
-/* You can add global styles to this file, and also import other style files */
-$white: #dbd8e3;
-$grey:  #5c5470;
-$dark-grey: #352f44;
-$black:  black;
-
-.white {
-  background: $white;
-}
-
-.grey {
-  background: $grey;
-}
-
-.dark-grey {
-  background: $dark-grey;
-}
-
-.black {
-  background: $black;
-}
-
-html {
-  margin: 0px;
-  height: 100%;
-  width: 100%;
-}
-
 body {
-  background: black;
-  margin: 0px;
-  min-height: 100%;
-  width: 100%;
+  margin: 0;
+  background-color: black !important;
+  color: #dddddd;
+  font-family: 'Almendra', serif;
+}
+
+.title {
+  font-family: 'Almendra', serif;
+  font-weight: 700; /* Use bold style if selected */
+  font-size: 2em;
+  color: #333; /* Adjust color as needed */
 }
